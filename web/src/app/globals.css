@@ -3,6 +3,12 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* variables de color para utilidades tailwind-like usadas en la app */
+  --color-white: #ffffff;
+  --color-gray-400: #9CA3AF; /* base */
+  --color-gray-500: #6B7280; /* texto secundario */
+  --color-gray-600: #374151; /* texto normal */
+  --color-green-700: #047857;
 }
 
 @theme inline {
@@ -15,8 +21,35 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
-    --foreground: #ededed;
+    --foreground: #e5e7eb;
+    --color-white: #0b0b0b;
+    --color-gray-400: #9CA3AF;
+    --color-gray-500: #D1D5DB;
+    --color-gray-600: #E5E7EB;
+    --color-green-700: #34D399;
   }
+}
+
+/* support explicit .dark class toggle */
+.dark {
+  --background: #0a0a0a;
+  --foreground: #e5e7eb;
+  --color-white: #0b0b0b;
+  --color-gray-400: #9CA3AF;
+  --color-gray-500: #D1D5DB;
+  --color-gray-600: #E5E7EB;
+  --color-green-700: #34D399;
+}
+
+/* explicit light class to force light mode when user selects it */
+.light {
+  --background: #ffffff;
+  --foreground: #171717;
+  --color-white: #ffffff;
+  --color-gray-400: #9CA3AF;
+  --color-gray-500: #6B7280;
+  --color-gray-600: #374151;
+  --color-green-700: #047857;
 }
 
 body {
@@ -24,3 +57,17 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Aumentar contraste en textos secundarios por si el color por defecto es muy claro */
+.text-gray-400 { color: var(--color-gray-400) !important; }
+.text-gray-500 { color: var(--color-gray-500) !important; }
+.text-gray-600 { color: var(--color-gray-600) !important; }
+.text-white { color: var(--color-white) !important; }
+
+/* Make common background and border utility classes follow the CSS variables
+  so that toggling `.dark` updates their colors */
+.bg-white { background-color: var(--color-white) !important; }
+.bg-gray-50 { background-color: var(--background) !important; }
+.bg-gray-200 { background-color: var(--color-gray-400) !important; }
+.bg-gray-800 { background-color: #1f2937 !important; }
+.border, .border-b, .border-r { border-color: var(--color-gray-400) !important; }
