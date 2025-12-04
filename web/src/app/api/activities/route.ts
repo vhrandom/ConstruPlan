@@ -22,6 +22,7 @@ type Activity = {
   duration: number;
   predecessors?: number[];
   successors?: number[];
+  status?: 'pending' | 'in-progress' | 'completed' | 'delayed';
 };
 
 function readData(): Activity[] {
@@ -31,6 +32,50 @@ function readData(): Activity[] {
 
 function writeData(data: Activity[]) {
   fs.writeFileSync(dataPath, JSON.stringify(data, null, 2), 'utf-8');
+}
+
+// Helper to add days to a date string
+function addDays(dateStr: string, days: number): string {
+  const date = new Date(dateStr);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+// Recalculate start dates based on predecessors
+function recalculateSchedule(data: Activity[]) {
+  let changed = true;
+  // Limit iterations to prevent infinite loops in case of undetected cycles, 
+  // though cycle detection should prevent this.
+  let iterations = 0;
+  const maxIterations = data.length * 2;
+
+  while (changed && iterations < maxIterations) {
+    changed = false;
+    iterations++;
+
+    for (const activity of data) {
+      if (!activity.predecessors || activity.predecessors.length === 0) continue;
+
+      let maxPredEnd = 0;
+      for (const pid of activity.predecessors) {
+        const pred = data.find(a => a.id === pid);
+        if (pred) {
+          const predEnd = new Date(pred.start).getTime() + pred.duration * 24 * 60 * 60 * 1000;
+          if (predEnd > maxPredEnd) {
+            maxPredEnd = predEnd;
+          }
+        }
+      }
+
+      if (maxPredEnd > 0) {
+        const newStart = new Date(maxPredEnd).toISOString().slice(0, 10);
+        if (activity.start !== newStart) {
+          activity.start = newStart;
+          changed = true;
+        }
+      }
+    }
+  }
 }
 
 export async function GET() {
@@ -49,6 +94,7 @@ export async function POST(request: Request) {
     duration: body.duration || 1,
     predecessors: body.predecessors || [],
     successors: body.successors || [],
+    status: body.status || 'pending',
   };
   // detect cycles: adding edges pid -> item.id would create a cycle if there exists a path item.id -> pid
   data.push(item);
@@ -61,6 +107,7 @@ export async function POST(request: Request) {
   }
   // ensure relations updated
   syncRelations(data, item);
+  recalculateSchedule(data);
   writeData(data);
   return NextResponse.json(item, { status: 201 });
 }
@@ -114,6 +161,7 @@ export async function PUT(request: Request) {
   }
   // ensure relations are consistent
   syncRelations(data, data[idx]);
+  recalculateSchedule(data);
   writeData(data);
   return NextResponse.json(data[idx]);
 }
@@ -125,6 +173,17 @@ export async function DELETE(request: Request) {
   const idx = data.findIndex(d => d.id === id);
   if (idx === -1) return NextResponse.json({ message: 'Not found' }, { status: 404 });
   const [removed] = data.splice(idx, 1);
+  // Recalculate might be needed if a task is removed? 
+  // If a task is removed, its successors might be able to start earlier, 
+  // but usually in CPM we only push forward. 
+  // However, for consistency, let's recalculate.
+  // First we need to remove the deleted ID from all predecessors/successors lists
+  for (const act of data) {
+    if (act.predecessors) act.predecessors = act.predecessors.filter(pid => pid !== id);
+    if (act.successors) act.successors = act.successors.filter(sid => sid !== id);
+  }
+
+  recalculateSchedule(data);
   writeData(data);
   return NextResponse.json(removed);
 }

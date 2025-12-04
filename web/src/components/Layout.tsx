@@ -1,8 +1,6 @@
 // web/src/components/Layout.tsx
 "use client";
 import React, { ReactNode } from 'react';
-import ScheduleManager from './ScheduleManager';
-import GanttView from './GanttView';
 import ThemeToggle from './ThemeToggle';
 
 type Props = {
@@ -27,9 +25,9 @@ export default function Layout({ children }: Props) {
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* Topbar */}
-        <header className="h-14 bg-white border-b flex items-center justify-between px-4">
+        <header className="h-14 bg-white border-b flex items-center justify-between px-4 shrink-0">
           <div className="flex items-center gap-4">
             <div className="text-sm text-gray-600">101 Builder Street - Outbuild</div>
             <div className="px-3 py-1 rounded bg-green-50 text-green-700 text-sm">Construction Schedule - MAIN SCHEDULE</div>
@@ -41,27 +39,9 @@ export default function Layout({ children }: Props) {
           </div>
         </header>
 
-        {/* Content area: list + gantt */}
-        <main className="flex-1 p-4 overflow-hidden">
-          <div className="h-full bg-white rounded shadow flex overflow-hidden">
-            {/* Left panel: schedule manager (form + list + edit) */}
-            <div className="w-1/2 min-w-[420px] border-r overflow-auto">
-              <div className="p-4 border-b">
-                <div className="text-sm text-gray-500">Schedule</div>
-              </div>
-              <div className="p-4">
-                <ScheduleManager />
-              </div>
-            </div>
-
-            {/* Right panel: render page children and a real Gantt that reads backend */}
-            <div className="flex-1 min-w-[480px] overflow-auto relative">
-              <div className="p-4">
-                <div className="mb-4">{children}</div>
-                <GanttView />
-              </div>
-            </div>
-          </div>
+        {/* Content area */}
+        <main className="flex-1 overflow-auto bg-gray-50">
+          {children}
         </main>
       </div>
     </div>

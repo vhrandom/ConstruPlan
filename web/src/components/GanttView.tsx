@@ -8,6 +8,14 @@ type Activity = {
   duration: number;
   predecessors?: number[];
   successors?: number[];
+  status?: 'pending' | 'in-progress' | 'completed' | 'delayed';
+};
+
+const statusColors: Record<string, string> = {
+  'pending': '#9ca3af', // gray-400
+  'in-progress': '#3b82f6', // blue-500
+  'completed': '#10b981', // emerald-500
+  'delayed': '#ef4444', // red-500
 };
 
 export default function GanttView() {
@@ -126,7 +134,7 @@ export default function GanttView() {
             const off = layout.offsets.get(it.id) ?? 0;
             const y = 30 + idx * rowHeight + rowHeight / 2;
             const xStart = labelWidth + off * dayWidth;
-            
+
             if (!it.predecessors || it.predecessors.length === 0) return null;
             return it.predecessors.map(pid => {
               const poff = layout.offsets.get(pid) ?? 0;
@@ -151,7 +159,7 @@ export default function GanttView() {
                 <rect x={0} y={y} width={labelWidth - 8} height={rowHeight - 6} fill="#fff" />
                 <text x={8} y={y + 18} fontSize={12} fill="#111">{it.id} - {it.title}</text>
 
-                <rect x={x} y={y + 6} width={barW} height={rowHeight - 18} rx={4} fill="#10b981" opacity={0.95} />
+                <rect x={x} y={y + 6} width={barW} height={rowHeight - 18} rx={4} fill={statusColors[it.status || 'pending'] || statusColors['pending']} opacity={0.95} />
               </g>
             );
           })}
