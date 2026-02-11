@@ -15,6 +15,15 @@ db.exec(`
     predecessors TEXT DEFAULT '[]',
     successors TEXT DEFAULT '[]',
     status TEXT DEFAULT 'pending'
+  );
+
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    photo TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `);
 

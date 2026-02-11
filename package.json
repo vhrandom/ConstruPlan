@@ -2,6 +2,12 @@
 	"dependencies": {
 		"react": "^19.1.1"
 	},
+	"scripts": {
+		"dev": "npm run dev --prefix web"
+	},
+	"scripts": {
+		"dev": "npm run dev --prefix web"
+	},
 	"devDependencies": {
 		"typescript": "^5.9.2"
 	}
