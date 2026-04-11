@@ -36,37 +36,46 @@ export default function SettingsPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
-        setMessage({ type: '', text: '' });
+        alert('Funcionalidad en desarrollo');
+        return;
+        
+        // setLoading(true);
+        // setMessage({ type: '', text: '' });
 
-        try {
-            const res = await fetch('/api/auth/update-profile', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(user),
-            });
+        // try {
+        //     const res = await fetch('/api/auth/update-profile', {
+        //         method: 'PUT',
+        //         headers: { 'Content-Type': 'application/json' },
+        //         body: JSON.stringify(user),
+        //     });
 
-            const data = await res.json();
+        //     const data = await res.json();
 
-            if (!res.ok) {
-                throw new Error(data.message || 'Failed to update profile');
-            }
+        //     if (!res.ok) {
+        //         throw new Error(data.message || 'Failed to update profile');
+        //     }
 
-            setMessage({ type: 'success', text: 'Profile updated successfully!' });
+        //     setMessage({ type: 'success', text: 'Profile updated successfully!' });
 
-            // Update local storage
-            const updatedUser = { ...user, password: '', newPassword: '' }; // Don't store password
-            localStorage.setItem('user', JSON.stringify(updatedUser));
+        //     // Update local storage
+        //     const updatedUser = { ...user, password: '', newPassword: '' }; // Don't store password
+        //     localStorage.setItem('user', JSON.stringify(updatedUser));
 
-        } catch (error: any) {
-            setMessage({ type: 'error', text: error.message });
-        } finally {
-            setLoading(false);
-        }
+        // } catch (error: any) {
+        //     setMessage({ type: 'error', text: error.message });
+        // } finally {
+        //     setLoading(false);
+        // }
     };
 
     return (
         <div className="max-w-2xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+            <button
+              onClick={() => window.location.href = '/'}
+              className="mb-4 text-sm text-blue-600 hover:underline"
+            >
+              ← Volver
+            </button>
             <h1 className="text-2xl font-bold text-gray-900 mb-8 dark:text-white">Settings</h1>
 
             <div className="bg-white shadow rounded-lg dark:bg-gray-800">

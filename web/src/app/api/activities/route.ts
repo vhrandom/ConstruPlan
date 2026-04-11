@@ -9,9 +9,11 @@ type Activity = {
   predecessors?: number[];
   successors?: number[];
   status?: 'pending' | 'in-progress' | 'completed' | 'delayed';
+  type?: 'task' | 'milestone';
+  responsible?: string;
 };
 
-// Helper to parse JSON fields from DB
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseActivity(row: any): Activity {
   return {
     ...row,
@@ -29,20 +31,6 @@ function getActivity(id: number): Activity | undefined {
   const row = db.prepare('SELECT * FROM activities WHERE id = ?').get(id);
   if (!row) return undefined;
   return parseActivity(row);
-}
-
-function updateActivityInDb(activity: Activity) {
-  const stmt = db.prepare(`
-    UPDATE activities 
-    SET title = @title, start = @start, duration = @duration, 
-        predecessors = @predecessors, successors = @successors, status = @status
-    WHERE id = @id
-  `);
-  stmt.run({
-    ...activity,
-    predecessors: JSON.stringify(activity.predecessors || []),
-    successors: JSON.stringify(activity.successors || []),
-  });
 }
 
 // Recalculate start dates based on predecessors
@@ -124,6 +112,8 @@ export async function POST(request: Request) {
     predecessors: body.predecessors || [],
     successors: body.successors || [],
     status: body.status || 'pending',
+    type: body.type || 'task',
+    responsible: body.responsible || '',
   };
 
   // Cycle detection
@@ -139,8 +129,8 @@ export async function POST(request: Request) {
 
   // Insert into DB
   const insert = db.prepare(`
-    INSERT INTO activities (id, title, start, duration, predecessors, successors, status)
-    VALUES (@id, @title, @start, @duration, @predecessors, @successors, @status)
+    INSERT INTO activities (id, title, start, duration, predecessors, successors, status, type, responsible)
+    VALUES (@id, @title, @start, @duration, @predecessors, @successors, @status, @type, @responsible)
   `);
   insert.run({
     ...item,
@@ -172,8 +162,8 @@ export async function POST(request: Request) {
       updateStmt.run({
         id: act.id,
         start: act.start,
-        predecessors: JSON.stringify(act.predecessors),
-        successors: JSON.stringify(act.successors),
+        predecessors: JSON.stringify(act.predecessors || []),
+        successors: JSON.stringify(act.successors || []),
       });
     }
   });
@@ -240,7 +230,8 @@ export async function PUT(request: Request) {
   const updateStmt = db.prepare(`
     UPDATE activities 
     SET title = @title, start = @start, duration = @duration, 
-        predecessors = @predecessors, successors = @successors, status = @status
+        predecessors = @predecessors, successors = @successors, status = @status,
+        type = @type, responsible = @responsible
     WHERE id = @id
   `);
 
@@ -251,9 +242,11 @@ export async function PUT(request: Request) {
         title: act.title,
         start: act.start,
         duration: act.duration,
-        predecessors: JSON.stringify(act.predecessors),
-        successors: JSON.stringify(act.successors),
-        status: act.status
+        predecessors: JSON.stringify(act.predecessors || []),
+        successors: JSON.stringify(act.successors || []),
+        status: act.status || 'pending',
+        type: act.type || 'task',
+        responsible: act.responsible || ''
       });
     }
   });
@@ -296,8 +289,8 @@ export async function DELETE(request: Request) {
       updateStmt.run({
         id: act.id,
         start: act.start,
-        predecessors: JSON.stringify(act.predecessors),
-        successors: JSON.stringify(act.successors),
+        predecessors: JSON.stringify(act.predecessors || []),
+        successors: JSON.stringify(act.successors || []),
       });
     }
   });

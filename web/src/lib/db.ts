@@ -14,7 +14,9 @@ db.exec(`
     duration INTEGER NOT NULL,
     predecessors TEXT DEFAULT '[]',
     successors TEXT DEFAULT '[]',
-    status TEXT DEFAULT 'pending'
+    status TEXT DEFAULT 'pending',
+    type TEXT DEFAULT 'task',
+    responsible TEXT
   );
 
   CREATE TABLE IF NOT EXISTS users (
@@ -49,11 +51,11 @@ if (count.count === 0) {
             const activities = JSON.parse(raw);
 
             const insert = db.prepare(`
-        INSERT INTO activities (id, title, start, duration, predecessors, successors, status)
-        VALUES (@id, @title, @start, @duration, @predecessors, @successors, @status)
+        INSERT INTO activities (id, title, start, duration, predecessors, successors, status, type, responsible)
+        VALUES (@id, @title, @start, @duration, @predecessors, @successors, @status, @type, @responsible)
       `);
 
-            const insertMany = db.transaction((activities) => {
+            const insertMany = db.transaction((activities: any[]) => {
                 for (const activity of activities) {
                     insert.run({
                         id: activity.id,
@@ -62,7 +64,9 @@ if (count.count === 0) {
                         duration: activity.duration,
                         predecessors: JSON.stringify(activity.predecessors || []),
                         successors: JSON.stringify(activity.successors || []),
-                        status: activity.status || 'pending'
+                        status: activity.status || 'pending',
+                        type: activity.type || 'task',
+                        responsible: activity.responsible || ''
                     });
                 }
             });

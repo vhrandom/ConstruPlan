@@ -22,7 +22,7 @@ export default function Layout({ children }: Props) {
   }, []);
 
   return (
-    <div className={`flex h-screen ${pathname === '/login' ? 'login-bg-texture' : 'bg-gray-50'}`}>
+    <div className={`flex h-screen transition-colors duration-300 ${pathname === '/login' ? 'login-bg-texture' : 'bg-gray-50 dark:bg-gray-900'}`}>
       {/* Dark sidebar */}
       <aside className="w-20 bg-[#0b0f10] text-white flex flex-col items-center py-4 shadow-xl">
         <div className="mb-6">
@@ -54,7 +54,7 @@ export default function Layout({ children }: Props) {
             )}
           </div>
           <div className="flex items-center gap-3">
-            {pathname !== '/login' && <button className="px-3 py-1 bg-green-600 text-white rounded">Save</button>}
+            {pathname !== '/login' && <button onClick={() => window.location.reload()} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 transition-colors text-white rounded">Actualizar</button>}
             <ThemeToggle />
 
             {pathname !== '/login' && (
@@ -98,7 +98,7 @@ export default function Layout({ children }: Props) {
         </header>
 
         {/* Content area */}
-        <main className="flex-1 overflow-auto bg-gray-50">
+        <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
           {children}
         </main>
       </div>
