@@ -3,6 +3,7 @@ import db from '@/lib/db';
 
 type Activity = {
   id: number;
+  project_id: number;
   title: string;
   start: string;
   duration: number;
@@ -22,15 +23,15 @@ function parseActivity(row: any): Activity {
   };
 }
 
-function getAllActivities(): Activity[] {
-  const rows = db.prepare('SELECT * FROM activities').all();
+function getAllActivities(projectId: number): Activity[] {
+  const rows = db.prepare('SELECT * FROM activities WHERE project_id = ? ORDER BY id').all(projectId);
   return rows.map(parseActivity);
 }
 
-function getActivity(id: number): Activity | undefined {
-  const row = db.prepare('SELECT * FROM activities WHERE id = ?').get(id);
-  if (!row) return undefined;
-  return parseActivity(row);
+function getProjectId(rawId: string | null): number | null {
+  if (!rawId) return null;
+  const projectId = Number(rawId);
+  return Number.isInteger(projectId) && projectId > 0 ? projectId : null;
 }
 
 // Recalculate start dates based on predecessors
@@ -88,24 +89,38 @@ function hasPath(data: Activity[], startId: number, targetId: number) {
   return false;
 }
 
-export async function GET() {
-  const data = getAllActivities();
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const projectId = getProjectId(searchParams.get('projectId'));
+  if (!projectId) return NextResponse.json({ message: 'ID de proyecto inválido.' }, { status: 400 });
+  const project = db.prepare('SELECT id FROM projects WHERE id = ?').get(projectId);
+  if (!project) return NextResponse.json({ message: 'Proyecto no encontrado.' }, { status: 404 });
+  const data = getAllActivities(projectId);
   return NextResponse.json(data);
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as Partial<Activity>;
-  const data = getAllActivities();
+  const body = (await request.json()) as Partial<Activity> & { projectId?: number };
+  const projectId = Number(body.projectId);
+  if (!Number.isInteger(projectId) || projectId < 1) {
+    return NextResponse.json({ message: 'ID de proyecto inválido.' }, { status: 400 });
+  }
+  if (!db.prepare('SELECT id FROM projects WHERE id = ?').get(projectId)) {
+    return NextResponse.json({ message: 'Proyecto no encontrado.' }, { status: 404 });
+  }
+  const data = getAllActivities(projectId);
 
   // Calculate next ID manually or let DB handle it? 
   // Since we need the ID for memory operations before re-fetching, let's let DB handle it 
   // but we need to insert first to get the ID.
   // However, the existing logic does cycle detection BEFORE insertion into the list.
   // Let's simulate the ID.
-  const nextId = data.reduce((m, a) => Math.max(m, a.id), 0) + 1;
+  const maxId = db.prepare('SELECT COALESCE(MAX(id), 0) AS id FROM activities').get() as { id: number };
+  const nextId = maxId.id + 1;
 
   const item: Activity = {
     id: nextId,
+    project_id: projectId,
     title: body.title || 'Nueva actividad',
     start: body.start || new Date().toISOString().slice(0, 10),
     duration: body.duration || 1,
@@ -129,8 +144,8 @@ export async function POST(request: Request) {
 
   // Insert into DB
   const insert = db.prepare(`
-    INSERT INTO activities (id, title, start, duration, predecessors, successors, status, type, responsible)
-    VALUES (@id, @title, @start, @duration, @predecessors, @successors, @status, @type, @responsible)
+    INSERT INTO activities (id, title, start, duration, predecessors, successors, status, type, responsible, project_id)
+    VALUES (@id, @title, @start, @duration, @predecessors, @successors, @status, @type, @responsible, @project_id)
   `);
   insert.run({
     ...item,
@@ -139,7 +154,7 @@ export async function POST(request: Request) {
   });
 
   // Re-fetch data to include the new item properly and run schedule logic
-  const freshData = getAllActivities();
+  const freshData = getAllActivities(projectId);
   const freshItem = freshData.find(d => d.id === item.id)!;
 
   syncRelations(freshData, freshItem);
@@ -206,8 +221,12 @@ function syncRelations(data: Activity[], item: Activity) {
 }
 
 export async function PUT(request: Request) {
-  const body = (await request.json()) as Partial<Activity> & { id: number };
-  const data = getAllActivities();
+  const body = (await request.json()) as Partial<Activity> & { id: number; projectId?: number };
+  const projectId = Number(body.projectId);
+  if (!Number.isInteger(projectId) || projectId < 1) {
+    return NextResponse.json({ message: 'ID de proyecto inválido.' }, { status: 400 });
+  }
+  const data = getAllActivities(projectId);
   const idx = data.findIndex(d => d.id === body.id);
 
   if (idx === -1) return NextResponse.json({ message: 'Not found' }, { status: 404 });
@@ -232,13 +251,14 @@ export async function PUT(request: Request) {
     SET title = @title, start = @start, duration = @duration, 
         predecessors = @predecessors, successors = @successors, status = @status,
         type = @type, responsible = @responsible
-    WHERE id = @id
+    WHERE id = @id AND project_id = @project_id
   `);
 
   const updateMany = db.transaction((activities: Activity[]) => {
     for (const act of activities) {
       updateStmt.run({
         id: act.id,
+        project_id: projectId,
         title: act.title,
         start: act.start,
         duration: act.duration,
@@ -259,9 +279,11 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = Number(searchParams.get('id'));
+  const projectId = getProjectId(searchParams.get('projectId'));
+  if (!projectId) return NextResponse.json({ message: 'ID de proyecto inválido.' }, { status: 400 });
 
   // We need to fetch data first to update relations of other tasks
-  const data = getAllActivities();
+  const data = getAllActivities(projectId);
   const idx = data.findIndex(d => d.id === id);
   if (idx === -1) return NextResponse.json({ message: 'Not found' }, { status: 404 });
 
@@ -276,18 +298,19 @@ export async function DELETE(request: Request) {
   recalculateSchedule(data);
 
   // Perform DB updates
-  const deleteStmt = db.prepare('DELETE FROM activities WHERE id = ?');
+  const deleteStmt = db.prepare('DELETE FROM activities WHERE id = ? AND project_id = ?');
   const updateStmt = db.prepare(`
     UPDATE activities 
     SET start = @start, predecessors = @predecessors, successors = @successors
-    WHERE id = @id
+    WHERE id = @id AND project_id = @project_id
   `);
 
   const transaction = db.transaction(() => {
-    deleteStmt.run(id);
+    deleteStmt.run(id, projectId);
     for (const act of data) {
       updateStmt.run({
         id: act.id,
+        project_id: projectId,
         start: act.start,
         predecessors: JSON.stringify(act.predecessors || []),
         successors: JSON.stringify(act.successors || []),
@@ -299,4 +322,3 @@ export async function DELETE(request: Request) {
 
   return NextResponse.json(removed);
 }
-

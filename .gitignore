@@ -1,41 +1,63 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Dependencies
+**/node_modules/
+**/.pnp
+**/.pnp.*
+**/.yarn/*
+!**/.yarn/patches/
+!**/.yarn/plugins/
+!**/.yarn/releases/
+!**/.yarn/versions/
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# Framework and build output
+**/.next/
+**/out/
+**/build/
+**/dist/
+**/coverage/
+**/.turbo/
+**/.vercel/
+**/.netlify/
 
-# testing
-/coverage
+# Local environment and credentials
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.template
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/secrets/
 
-# next.js
-/.next/
-/out/
+# Local databases and database sidecar files
+**/*.db
+**/*.db-*
+**/*.sqlite
+**/*.sqlite-*
+**/*.sqlite3
+**/*.sqlite3-*
 
-# production
-/build
+# Generated logs, reports, and local exports
+**/*.log
+**/*-output.txt
+**/*_output.txt
+**/exports/
+**/reports/generated/
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/.pnpm-debug.log*
 
-# misc
+# TypeScript and Next.js generated files
+**/*.tsbuildinfo
+**/next-env.d.ts
+
+# Operating system and editor files
 .DS_Store
+Thumbs.db
+*.swp
+*.swo
 *.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+.idea/
+.vscode/*
+!.vscode/extensions.json
