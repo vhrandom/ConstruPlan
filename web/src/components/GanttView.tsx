@@ -9,6 +9,7 @@ type Activity = {
   predecessors?: number[];
   successors?: number[];
   status?: 'pending' | 'in-progress' | 'completed' | 'delayed';
+  type?: 'task' | 'milestone';
 };
 
 const statusColors: Record<string, string> = {
@@ -154,12 +155,24 @@ export default function GanttView() {
             const y = 30 + idx * rowHeight;
             const x = labelWidth + off * dayWidth;
             const barW = Math.max(6, it.duration * dayWidth);
+            const isMilestone = it.type === 'milestone';
+            const color = statusColors[it.status || 'pending'] || statusColors['pending'];
+            
             return (
               <g key={it.id}>
                 <rect x={0} y={y} width={labelWidth - 8} height={rowHeight - 6} fill="#fff" />
                 <text x={8} y={y + 18} fontSize={12} fill="#111">{it.id} - {it.title}</text>
 
-                <rect x={x} y={y + 6} width={barW} height={rowHeight - 18} rx={4} fill={statusColors[it.status || 'pending'] || statusColors['pending']} opacity={0.95} />
+                {isMilestone ? (
+                  <polygon 
+                    points={`${x},${y + 6} ${x + 8},${y + 14} ${x},${y + 22} ${x - 8},${y + 14}`} 
+                    fill={color} 
+                    stroke="#fff" 
+                    strokeWidth="1.5" 
+                  />
+                ) : (
+                  <rect x={x} y={y + 6} width={barW} height={rowHeight - 18} rx={4} fill={color} opacity={0.95} />
+                )}
               </g>
             );
           })}
